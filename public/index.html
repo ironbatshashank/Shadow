@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Shadow — Privacy-First AI Assistant</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg: #08080d;
+  --s1: #111118;
+  --s2: #18181f;
+  --s3: #22222c;
+  --border: #2e2e3e;
+  --border2: #3d3d52;
+  --text: #e6e6f0;
+  --muted: #666680;
+  --dimmed: #444458;
+  --cyan: #00e5ff;
+  --green: #00e5a0;
+  --amber: #ffb300;
+  --red: #ff3d5a;
+  --purple: #b48eff;
+  --blue: #4d94ff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+/* ── Header ── */
+.app-header {
+  flex-shrink: 0;
+  padding: 14px 16px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  z-index: 10;
+}
+
+.logo {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.logo em { color: var(--cyan); font-style: normal; }
+
+.privacy-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--green);
+  border: 1px solid rgba(0,229,160,0.3);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+.dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── Mode Tabs ── */
+.mode-tabs {
+  flex-shrink: 0;
+  display: flex;
+  padding: 10px 16px;
+  gap: 8px;
+  background: var(--bg);
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.tab .tab-icon { font-size: 15px; }
+.tab.active {
+  background: var(--s2);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* ── Scroll content ── */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 16px 80px;
+}
+
+/* ── Panels ── */
+.panel { display: none; flex-direction: column; gap: 12px; }
+.panel.active { display: flex; }
+
+/* ── Cards ── */
+.card {
+  background: var(--s1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.card-body { padding: 14px; }
+
+/* ── API Key ── */
+.key-row { display: flex; gap: 8px; }
+.key-input {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+.key-input:focus { border-color: var(--cyan); }
+.icon-btn {
+  width: 40px; height: 40px;
+  border-radius: 8px; border: 1px solid var(--border);
+  background: var(--s2); color: var(--muted);
+  cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.icon-btn:hover { border-color: var(--cyan); color: var(--text); }
+
+.demo-note {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(255,179,0,0.07);
+  border: 1px solid rgba(255,179,0,0.2);
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  color: var(--amber);
+  line-height: 1.5;
+  display: none;
+}
+
+/* ── Camera ── */
+.cam-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  background: #050508;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#videoEl { width: 100%; height: 100%; object-fit: cover; display: none; }
+#capturedImg { width: 100%; height: 100%; object-fit: cover; display: none; }
+.cam-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--dimmed); }
+.cam-placeholder p { font-family: 'Space Mono', monospace; font-size: 12px; }
+.scan-line { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); animation: scanAnim 2s ease-in-out infinite; display: none; pointer-events: none; }
+@keyframes scanAnim { 0%{top:0%;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{top:100%;opacity:0} }
+.corners span { position: absolute; width: 18px; height: 18px; border-color: var(--cyan); border-style: solid; display: none; }
+.corners span:nth-child(1) { top:10px;left:10px; border-width:2px 0 0 2px; }
+.corners span:nth-child(2) { top:10px;right:10px; border-width:2px 2px 0 0; }
+.corners span:nth-child(3) { bottom:10px;left:10px; border-width:0 0 2px 2px; }
+.corners span:nth-child(4) { bottom:10px;right:10px; border-width:0 2px 2px 0; }
+.cam-controls { display: flex; gap: 8px; padding: 10px 14px; }
+.btn { flex: 1; padding: 10px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--cyan); }
+.btn-primary { background: var(--cyan); color: var(--bg); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); flex: 0; padding: 10px 14px; }
+.upload-row { padding: 0 14px 14px; }
+.upload-zone { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.upload-zone:hover { border-color: var(--cyan); background: rgba(0,229,255,0.03); }
+.upload-zone p { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 4px; }
+#fileInputCam { display: none; }
+canvas { display: none; }
+
+/* ── Mic ── */
+.mic-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0;
+}
+.mic-btn {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--s2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s;
+  position: relative;
+}
+.mic-btn.recording {
+  border-color: var(--red);
+  background: rgba(255,61,90,0.1);
+  animation: recPulse 1.5s ease-in-out infinite;
+}
+.mic-btn.muted {
+  border-color: var(--amber);
+  background: rgba(255,179,0,0.1);
+}
+@keyframes recPulse { 0%,100%{box-shadow:0 0 0 0 rgba(255,61,90,0.3)} 50%{box-shadow:0 0 0 12px rgba(255,61,90,0)} }
+.mic-icon { font-size: 28px; }
+.rec-indicator {
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
+}
+.rec-dot { width: 7px; height: 7px; background: var(--red); border-radius: 50%; animation: pulse 1s infinite; display: none; }
+.rec-dot.visible { display: block; }
+.mute-row { display: flex; gap: 8px; width: 100%; }
+.mute-btn {
+  flex: 1; padding: 9px; border-radius: 8px;
+  background: var(--s3); border: 1px solid var(--border);
+  color: var(--muted); font-family: 'Space Mono', monospace; font-size: 11px;
+  cursor: pointer; transition: all 0.2s;
+}
+.mute-btn.active { border-color: var(--amber); color: var(--amber); background: rgba(255,179,0,0.07); }
+
+/* ── Transcript ── */
+.transcript-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 80px;
+  max-height: 160px;
+  overflow-y: auto;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.transcript-box .redacted { color: var(--amber); }
+.transcript-box .normal { color: var(--text); }
+
+/* ── Privacy indicator ── */
+.privacy-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: rgba(0,229,160,0.05);
+  border-top: 1px solid rgba(0,229,160,0.15);
+}
+.priv-icon { font-size: 13px; }
+.priv-text { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--green); }
+
+/* ── Analyse button ── */
+.analyse-btn {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px; border: none;
+  background: linear-gradient(135deg, var(--cyan), #0077ff);
+  color: var(--bg);
+  font-family: 'Syne', sans-serif;
+  font-size: 15px; font-weight: 800;
+  cursor: pointer; transition: all 0.3s;
+  letter-spacing: 0.02em;
+}
+.analyse-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Status ── */
+.status {
+  display: none;
+  align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: var(--s1); border: 1px solid var(--border); border-radius: 8px;
+  font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
+}
+.status.visible { display: flex; }
+.spinner { width: 13px; height: 13px; border: 2px solid var(--border); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Results ── */
+.results { display: none; flex-direction: column; gap: 12px; }
+.results.visible { display: flex; }
+
+.summary-card {
+  background: var(--s1); border: 1px solid var(--border); border-radius: 12px; padding: 14px;
+}
+.summary-name { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+.summary-desc { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.pill {
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  padding: 3px 9px; border-radius: 20px; font-weight: 700; letter-spacing: 0.04em;
+}
+.pill-cyan { background: rgba(0,229,255,0.1); color: var(--cyan); border: 1px solid rgba(0,229,255,0.25); }
+.pill-green { background: rgba(0,229,160,0.1); color: var(--green); border: 1px solid rgba(0,229,160,0.25); }
+.pill-amber { background: rgba(255,179,0,0.1); color: var(--amber); border: 1px solid rgba(255,179,0,0.25); }
+.pill-red { background: rgba(255,61,90,0.1); color: var(--red); border: 1px solid rgba(255,61,90,0.25); }
+.pill-purple { background: rgba(180,142,255,0.1); color: var(--purple); border: 1px solid rgba(180,142,255,0.25); }
+.pill-blue { background: rgba(77,148,255,0.1); color: var(--blue); border: 1px solid rgba(77,148,255,0.25); }
+
+/* ── Pathway Steps ── */
+.pathway-card { background: var(--s1); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.pathway-hdr { padding: 11px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.step-list { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.step {
+  background: var(--s2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 11px 12px 11px 14px;
+  position: relative; overflow: hidden;
+  animation: slideUp 0.3s ease both;
+}
+@keyframes slideUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.step::before { content:''; position:absolute; left:0;top:0;bottom:0;width:3px; }
+.step.cyan::before { background:var(--cyan); }
+.step.green::before { background:var(--green); }
+.step.amber::before { background:var(--amber); }
+.step.red::before { background:var(--red); }
+.step.purple::before { background:var(--purple); }
+.step.blue::before { background:var(--blue); }
+.step-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px; }
+.step-name { font-size:12px; font-weight:700; line-height:1.3; }
+.step-time { font-family:'Space Mono',monospace; font-size:10px; white-space:nowrap; flex-shrink:0; }
+.step-desc { font-family:'Space Mono',monospace; font-size:10px; color:var(--muted); line-height:1.5; }
+.step-num { position:absolute; top:10px; right:10px; font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--border); line-height:1; }
+.step-connector { height:6px; padding-left:16px; display:flex; align-items:center; }
+.step-connector::before { content:''; width:1px; height:100%; background:var(--border); }
+
+/* ── Task items ── */
+.task-list { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; }
+.task-item {
+  background: var(--s2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 11px 12px;
+  animation: slideUp 0.3s ease both;
+}
+.task-top { display: flex; align-items: flex-start; gap: 8px; }
+.task-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); flex-shrink: 0; margin-top: 1px; cursor: pointer; transition: all 0.2s; }
+.task-check:hover { border-color: var(--green); }
+.task-name { font-size: 13px; font-weight: 700; flex: 1; line-height: 1.3; }
+.task-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; padding-left: 24px; }
+.task-prio { font-family: 'Space Mono', monospace; font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+.prio-high { background: rgba(255,61,90,0.12); color: var(--red); }
+.prio-med { background: rgba(255,179,0,0.12); color: var(--amber); }
+.prio-low { background: rgba(0,229,160,0.12); color: var(--green); }
+.task-assignee { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+.task-due { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--purple); }
+.push-row { padding: 0 14px 14px; display: flex; gap: 8px; }
+.push-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.push-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* ── Raw toggle ── */
+.raw-toggle { background: var(--s1); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.raw-hdr { padding: 10px 14px; display: flex; justify-content: space-between; cursor: pointer; }
+.raw-body { display: none; padding: 12px 14px; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); line-height: 1.6; white-space: pre-wrap; word-break: break-word; border-top: 1px solid var(--border); }
+.raw-body.open { display: block; }
+.chev { font-size: 10px; color: var(--dimmed); transition: transform 0.2s; }
+.chev.open { transform: rotate(180deg); }
+
+/* ── Off-the-record guard ── */
+.otr-banner {
+  display: none;
+  padding: 9px 14px;
+  background: rgba(255,179,0,0.1);
+  border: 1px solid rgba(255,179,0,0.3);
+  border-radius: 8px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  align-items: center; gap: 8px;
+}
+.otr-banner.visible { display: flex; }
+
+/* ── Reset FAB ── */
+.fab { position: fixed; bottom: 20px; right: 16px; width: 44px; height: 44px; border-radius: 50%; background: var(--s2); border: 1px solid var(--border); color: var(--muted); font-size: 18px; cursor: pointer; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 50; transition: all 0.2s; }
+.fab.visible { display: flex; }
+.fab:hover { border-color: var(--red); color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="app-header">
+  <div class="logo">Shadow<em>.</em></div>
+  <div class="privacy-badge">
+    <div class="dot"></div>
+    ARM · PRIVATE
+  </div>
+</div>
+
+<!-- Mode tabs -->
+<div class="mode-tabs">
+  <button class="tab active" id="tabCam" onclick="switchMode('cam')">
+    <span class="tab-icon">📷</span> RegBot
+  </button>
+  <button class="tab" id="tabMic" onclick="switchMode('mic')">
+    <span class="tab-icon">🎙</span> Meeting
+  </button>
+</div>
+
+<!-- Scrollable content -->
+<div class="scroll-area">
+
+  <!-- ══ REGBOT PANEL ══ -->
+  <div class="panel active" id="panelCam">
+
+    <!-- API Key -->
+    <div class="card">
+      <div class="card-header"><span class="card-label">OpenAI API Key</span></div>
+      <div class="card-body">
+        <div class="key-row">
+          <input class="key-input" type="password" id="apiKeyCam" placeholder="sk-..." />
+          <button class="icon-btn" onclick="toggleKey('apiKeyCam')">👁</button>
+        </div>
+        <div class="demo-note" id="demoNoteCam">⚠ Demo mode — no key provided. Sample output will render.</div>
+      </div>
+    </div>
+
+    <!-- Camera -->
+    <div class="card">
+      <div class="card-header"><span class="card-label">Capture Whiteboard / Diagram</span></div>
+      <div class="cam-preview" id="camPreview">
+        <video id="videoEl" autoplay playsinline></video>
+        <img id="capturedImg" alt="Captured" />
+        <div class="cam-placeholder" id="camHolder">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <p>Point at a diagram</p>
+        </div>
+        <div class="scan-line" id="scanLine"></div>
+        <div class="corners"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="cam-controls">
+        <button class="btn btn-outline" id="btnCam" onclick="startCam()">📷 Camera</button>
+        <button class="btn btn-primary" id="btnCapture" onclick="capture()" disabled>Capture</button>
+        <button class="btn btn-danger" id="btnRetake" onclick="retake()" style="display:none">✕</button>
+      </div>
+      <div class="upload-row">
+        <div class="upload-zone" onclick="document.getElementById('fileInputCam').click()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--dimmed)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>or upload an image</p>
+        </div>
+        <input type="file" id="fileInputCam" accept="image/*" onchange="handleUpload(event)" />
+      </div>
+      <div class="privacy-strip">
+        <span class="priv-icon">🔒</span>
+        <span class="priv-text">Only the final task list leaves this device</span>
+      </div>
+    </div>
+
+    <!-- Analyse -->
+    <button class="analyse-btn" id="analyseBtn" onclick="analyseImage()" disabled>⚡ Analyse Regulatory Pathway</button>
+
+    <!-- Status -->
+    <div class="status" id="camStatus"><div class="spinner"></div><span id="camStatusTxt">Analysing...</span></div>
+
+    <!-- Results -->
+    <div class="results" id="camResults">
+      <div class="summary-card">
+        <div class="summary-name" id="camSysName">—</div>
+        <div class="summary-desc" id="camSysDesc">—</div>
+        <div class="pills" id="camPills"></div>
+      </div>
+      <div class="pathway-card">
+        <div class="pathway-hdr">
+          <span class="card-label">Regulatory pathway</span>
+          <span class="pill pill-green" id="camTimeline">—</span>
+        </div>
+        <div class="step-list" id="camSteps"></div>
+      </div>
+      <div class="raw-toggle">
+        <div class="raw-hdr" onclick="toggleRaw('camRaw','camChev')">
+          <span class="card-label">Raw analysis</span>
+          <span class="chev" id="camChev">▼</span>
+        </div>
+        <div class="raw-body" id="camRaw"></div>
+      </div>
+    </div>
+
+  </div><!-- /panelCam -->
+
+
+  <!-- ══ MEETING SHADOW PANEL ══ -->
+  <div class="panel" id="panelMic">
+
+    <!-- API Key -->
+    <div class="card">
+      <div class="card-header"><span class="card-label">OpenAI API Key</span></div>
+      <div class="card-body">
+        <div class="key-row">
+          <input class="key-input" type="password" id="apiKeyMic" placeholder="sk-..." />
+          <button class="icon-btn" onclick="toggleKey('apiKeyMic')">👁</button>
+        </div>
+        <div class="demo-note" id="demoNoteMic">⚠ Demo mode — sample meeting transcript will be used.</div>
+      </div>
+    </div>
+
+    <!-- Off-the-record banner -->
+    <div class="otr-banner" id="otrBanner">
+      🔇 OFF THE RECORD — audio is being suppressed
+    </div>
+
+    <!-- Mic card -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-label">Meeting Listener</span>
+        <span class="pill pill-green" id="recTimerLabel" style="display:none">00:00</span>
+      </div>
+      <div class="card-body">
+        <div class="mic-area">
+          <button class="mic-btn" id="micBtn" onclick="toggleRecording()">
+            <span class="mic-icon" id="micIcon">🎙</span>
+          </button>
+          <div class="rec-indicator">
+            <div class="rec-dot" id="recDot"></div>
+            <span id="recLabel">Tap to start listening</span>
+          </div>
+          <div class="mute-row">
+            <button class="mute-btn" id="muteBtn" onclick="toggleMute()">🔇 Off the record</button>
+            <button class="mute-btn" id="unmuteBtn" onclick="untoggleMute()" style="display:none">🎙 Back on record</button>
+          </div>
+        </div>
+
+        <!-- Transcript preview -->
+        <div>
+          <div class="card-label" style="margin-bottom:6px">Live transcript</div>
+          <div class="transcript-box" id="transcriptBox">
+            <span style="color:var(--dimmed)">Transcript will appear here...</span>
+          </div>
+        </div>
+      </div>
+      <div class="privacy-strip">
+        <span class="priv-icon">🔒</span>
+        <span class="priv-text">Audio never leaves this device. Only task list is sent.</span>
+      </div>
+    </div>
+
+    <!-- Extract tasks -->
+    <button class="analyse-btn" id="extractBtn" onclick="extractTasks()" disabled>⚡ Extract Action Items</button>
+
+    <!-- Status -->
+    <div class="status" id="micStatus"><div class="spinner"></div><span id="micStatusTxt">Extracting...</span></div>
+
+    <!-- Results -->
+    <div class="results" id="micResults">
+      <div class="summary-card">
+        <div class="summary-name" id="meetingTitle">—</div>
+        <div class="summary-desc" id="meetingSummary">—</div>
+        <div class="pills" id="meetingPills"></div>
+      </div>
+      <div class="pathway-card">
+        <div class="pathway-hdr">
+          <span class="card-label">Action items</span>
+          <span class="pill pill-cyan" id="taskCount">0 tasks</span>
+        </div>
+        <div class="task-list" id="taskList"></div>
+        <div class="push-row">
+          <button class="push-btn" onclick="pushTasks('todoist')">📋 Push to Todoist</button>
+          <button class="push-btn" onclick="pushTasks('github')">🐙 Push to GitHub</button>
+        </div>
+      </div>
+      <div class="raw-toggle">
+        <div class="raw-hdr" onclick="toggleRaw('micRaw','micChev')">
+          <span class="card-label">Raw transcript (scrubbed)</span>
+          <span class="chev" id="micChev">▼</span>
+        </div>
+        <div class="raw-body" id="micRaw"></div>
+      </div>
+    </div>
+
+  </div><!-- /panelMic -->
+
+</div><!-- /scroll-area -->
+
+<button class="fab" id="fab" onclick="resetAll()" title="Reset">↺</button>
+<canvas id="cvs"></canvas>
+
+<script>
+// ══ MODE SWITCH ════════════════════════════════════════
+function switchMode(m) {
+  document.getElementById('panelCam').classList.toggle('active', m==='cam');
+  document.getElementById('panelMic').classList.toggle('active', m==='mic');
+  document.getElementById('tabCam').classList.toggle('active', m==='cam');
+  document.getElementById('tabMic').classList.toggle('active', m==='mic');
+}
+
+// ══ SHARED UTILS ═══════════════════════════════════════
+function toggleKey(id) {
+  const el = document.getElementById(id);
+  el.type = el.type==='password'?'text':'password';
+}
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function setStatus(id, txtId, on, txt) {
+  document.getElementById(id).classList.toggle('visible', on);
+  if (txt) document.getElementById(txtId).textContent = txt;
+}
+function toggleRaw(bodyId, chevId) {
+  document.getElementById(bodyId).classList.toggle('open');
+  document.getElementById(chevId).classList.toggle('open');
+}
+function showFab(){ document.getElementById('fab').classList.add('visible'); }
+function hideFab(){ document.getElementById('fab').classList.remove('visible'); }
+
+// ══ REGBOT ═════════════════════════════════════════════
+let camStream = null, capturedDataUrl = null;
+
+async function startCam() {
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:'environment',width:{ideal:1280}} });
+    document.getElementById('videoEl').srcObject = camStream;
+    document.getElementById('videoEl').style.display = 'block';
+    document.getElementById('camHolder').style.display = 'none';
+    document.getElementById('capturedImg').style.display = 'none';
+    document.getElementById('btnCapture').disabled = false;
+    document.getElementById('btnCam').textContent = '⏹ Stop';
+    document.getElementById('btnCam').onclick = stopCam;
+    document.querySelectorAll('.corners span').forEach(s=>s.style.display='block');
+  } catch(e) { alert('Camera unavailable — please upload an image.'); }
+}
+
+function stopCam() {
+  if (camStream) { camStream.getTracks().forEach(t=>t.stop()); camStream=null; }
+  document.getElementById('videoEl').style.display = 'none';
+  document.getElementById('camHolder').style.display = 'flex';
+  document.getElementById('btnCapture').disabled = true;
+  document.getElementById('btnCam').textContent = '📷 Camera';
+  document.getElementById('btnCam').onclick = startCam;
+  document.querySelectorAll('.corners span').forEach(s=>s.style.display='none');
+}
+
+function capture() {
+  const v = document.getElementById('videoEl');
+  const c = document.getElementById('cvs');
+  c.width = v.videoWidth; c.height = v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  capturedDataUrl = c.toDataURL('image/jpeg',0.9);
+  stopCam();
+  const img = document.getElementById('capturedImg');
+  img.src = capturedDataUrl; img.style.display = 'block';
+  document.getElementById('camHolder').style.display = 'none';
+  document.getElementById('btnRetake').style.display = 'block';
+  document.getElementById('analyseBtn').disabled = false;
+  const sl = document.getElementById('scanLine');
+  sl.style.display='block'; setTimeout(()=>sl.style.display='none',2200);
+}
+
+function retake() {
+  capturedDataUrl = null;
+  document.getElementById('capturedImg').style.display = 'none';
+  document.getElementById('capturedImg').src = '';
+  document.getElementById('btnRetake').style.display = 'none';
+  document.getElementById('analyseBtn').disabled = true;
+  document.getElementById('camHolder').style.display = 'flex';
+  document.getElementById('camResults').classList.remove('visible');
+  hideFab();
+}
+
+function handleUpload(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    capturedDataUrl = ev.target.result;
+    const img = document.getElementById('capturedImg');
+    img.src = capturedDataUrl; img.style.display='block';
+    document.getElementById('camHolder').style.display='none';
+    document.getElementById('videoEl').style.display='none';
+    document.getElementById('btnRetake').style.display='block';
+    document.getElementById('analyseBtn').disabled = false;
+    if (camStream) stopCam();
+  };
+  r.readAsDataURL(file);
+}
+
+async function analyseImage() {
+  const key = document.getElementById('apiKeyCam').value.trim();
+  const demo = !key;
+  document.getElementById('demoNoteCam').style.display = demo?'block':'none';
+  document.getElementById('analyseBtn').disabled = true;
+  setStatus('camStatus','camStatusTxt',true,'Sending to Claude Vision...');
+  try {
+    let parsed;
+    if (demo) {
+      await delay(1600); setStatus('camStatus','camStatusTxt',true,'Running demo...');
+      await delay(1000); parsed = getDemoRegData();
+    } else {
+      const base64 = capturedDataUrl.split(',')[1];
+      const mt = capturedDataUrl.startsWith('data:image/png')?'image/png':'image/jpeg';
+      setStatus('camStatus','camStatusTxt',true,'Waiting for Claude...');
+      const res = await fetch('/api/chat', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          key,
+          body: {
+            model:'gpt-4o', max_tokens:1500,
+            messages:[
+              {role:'system',content:`You are RegBot, a UK biological regulatory pathway expert. Analyse the image of a whiteboard or diagram and identify the biological system described. Map it to UK regulatory pathway. Respond ONLY with valid JSON, no markdown:
+{"system_name":"...","description":"...","tags":["..."],"tag_colours":["green|cyan|amber|red|purple|blue"],"pathway_name":"...","pathway_colour":"green|cyan|amber|red|purple|blue","timeline":"...","steps":[{"name":"...","description":"...","timeline":"...","colour":"green|cyan|amber|red|purple|blue"}],"key_risks":["..."],"raw_notes":"..."}
+UK regulatory context: Self-cloning QPS=immediate; Foreign gene QPS=months; Precision Bred=1-2yr; Standard GMM=2-3yr; Novel enzyme=3+yr; Food enzyme GRAS=fast; Recombinant QPS=1-2yr EC1332/2008.`},
+              {role:'user',content:[
+                {type:'image_url',image_url:{url:`data:${mt};base64,${base64}`}},
+                {type:'text',text:'Analyse this image and return the JSON regulatory pathway analysis.'}
+              ]}
+            ]
+          }
+        })
+      });
+      if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error'); }
+      const data = await res.json();
+      parsed = JSON.parse(data.choices[0].message.content.replace(/```json|```/g,'').trim());
+    }
+    setStatus('camStatus','camStatusTxt',true,'Rendering...');
+    await delay(200);
+    renderRegResults(parsed);
+    setStatus('camStatus','camStatusTxt',false);
+  } catch(e) {
+    setStatus('camStatus','camStatusTxt',false);
+    document.getElementById('analyseBtn').disabled = false;
+    alert('Error: '+e.message);
+  }
+}
+
+function renderRegResults(d) {
+  document.getElementById('camSysName').textContent = d.system_name||'—';
+  document.getElementById('camSysDesc').textContent = d.description||'';
+  const pills = document.getElementById('camPills'); pills.innerHTML='';
+  (d.tags||[]).forEach((t,i)=>{ const c=(d.tag_colours||[])[i]||'blue'; pills.innerHTML+=`<span class="pill pill-${c}">${t}</span>`; });
+  (d.key_risks||[]).forEach(r=>{ pills.innerHTML+=`<span class="pill pill-red">⚠ ${r}</span>`; });
+  const tl = document.getElementById('camTimeline');
+  tl.textContent=(d.timeline||'—').toUpperCase(); tl.className=`pill pill-${d.pathway_colour||'cyan'}`;
+  const steps = document.getElementById('camSteps'); steps.innerHTML='';
+  (d.steps||[]).forEach((s,i)=>{
+    if (i>0) steps.innerHTML+=`<div class="step-connector"></div>`;
+    steps.innerHTML+=`<div class="step ${s.colour||'cyan'}" style="animation-delay:${i*0.1}s">
+      <div class="step-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="step-top"><div class="step-name">${s.name}</div><div class="step-time" style="color:var(--${s.colour||'cyan'})">${s.timeline||''}</div></div>
+      <div class="step-desc">${s.description}</div>
+    </div>`;
+  });
+  document.getElementById('camRaw').textContent = d.raw_notes||'';
+  document.getElementById('camResults').classList.add('visible');
+  showFab();
+  document.getElementById('camResults').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ══ MEETING SHADOW ═════════════════════════════════════
+let isRecording = false, isMuted = false, mediaRecorder = null;
+let audioChunks = [], transcriptLines = [], recTimer = null, recSeconds = 0;
+let transcribeInterval = null;
+const OTR_TRIGGERS = ['off the record','go off the record','mute shadow','don\'t record','private'];
+const ONR_TRIGGERS = ['back on the record','resume recording','on the record'];
+
+function toggleRecording() {
+  if (isRecording) stopRecording(); else startRecording();
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size>0 && !isMuted) audioChunks.push(e.data); };
+    mediaRecorder.start(1000);
+    isRecording = true;
+    document.getElementById('micBtn').classList.add('recording');
+    document.getElementById('micIcon').textContent = '⏹';
+    document.getElementById('recDot').classList.add('visible');
+    document.getElementById('recLabel').textContent = 'Recording...';
+    document.getElementById('recTimerLabel').style.display = 'flex';
+    document.getElementById('extractBtn').disabled = false;
+    recSeconds = 0;
+    recTimer = setInterval(()=>{
+      recSeconds++;
+      const m = String(Math.floor(recSeconds/60)).padStart(2,'0');
+      const s = String(recSeconds%60).padStart(2,'0');
+      document.getElementById('recTimerLabel').textContent = m+':'+s;
+    }, 1000);
+    transcribeInterval = setInterval(liveTranscribe, 5000);
+  } catch(e) {
+    alert('Microphone unavailable. Demo mode will use a sample transcript.');
+    simulateTranscript();
+    document.getElementById('extractBtn').disabled = false;
+    isRecording = true;
+    document.getElementById('micBtn').classList.add('recording');
+    document.getElementById('micIcon').textContent = '⏹';
+    document.getElementById('recDot').classList.add('visible');
+    document.getElementById('recLabel').textContent = 'Demo recording...';
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state!=='inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+  }
+  isRecording = false; isMuted = false;
+  clearInterval(recTimer);
+  clearInterval(transcribeInterval);
+  transcribeInterval = null;
+  liveTranscribe();
+  document.getElementById('micBtn').classList.remove('recording','muted');
+  document.getElementById('micIcon').textContent = '🎙';
+  document.getElementById('recDot').classList.remove('visible');
+  document.getElementById('recLabel').textContent = 'Recording stopped';
+  document.getElementById('otrBanner').classList.remove('visible');
+  document.getElementById('muteBtn').style.display = '';
+  document.getElementById('unmuteBtn').style.display = 'none';
+}
+
+function toggleMute() {
+  isMuted = true;
+  document.getElementById('micBtn').classList.remove('recording');
+  document.getElementById('micBtn').classList.add('muted');
+  document.getElementById('micIcon').textContent = '🔇';
+  document.getElementById('otrBanner').classList.add('visible');
+  document.getElementById('muteBtn').style.display = 'none';
+  document.getElementById('unmuteBtn').style.display = '';
+  appendTranscript('[OFF THE RECORD]', true);
+}
+
+function untoggleMute() {
+  isMuted = false;
+  document.getElementById('micBtn').classList.remove('muted');
+  document.getElementById('micBtn').classList.add('recording');
+  document.getElementById('micIcon').textContent = '⏹';
+  document.getElementById('otrBanner').classList.remove('visible');
+  document.getElementById('muteBtn').style.display = '';
+  document.getElementById('unmuteBtn').style.display = 'none';
+  appendTranscript('[BACK ON THE RECORD]', true);
+}
+
+async function liveTranscribe() {
+  if (audioChunks.length === 0) return;
+  const key = document.getElementById('apiKeyMic').value.trim();
+  if (!key) return;
+  const chunks = audioChunks.splice(0, audioChunks.length);
+  const blob = new Blob(chunks, { type: chunks[0].type || 'audio/webm' });
+  if (blob.size < 1000) return;
+  try {
+    const fd = new FormData();
+    fd.append('key', key);
+    fd.append('file', blob, 'chunk.webm');
+    const r = await fetch('/api/whisper', { method: 'POST', body: fd });
+    if (!r.ok) return;
+    const text = (await r.text()).trim();
+    if (text) appendTranscript(text);
+  } catch(e) { /* silent — keep recording */ }
+}
+
+const demoLines = [
+  "Alice: OK let's get started. Quick sync on the Q3 release.",
+  "Bob: I'll own the API documentation update, should be done by Friday.",
+  "Alice: Great. Who's handling the performance regression on the auth service?",
+  "Bob: That's on me and Carlos. We'll have a fix deployed by end of next week.",
+  "Alice: Carlos can you also review the security audit report before Thursday?",
+  "Carlos: Yes, I'll prioritise that.",
+  "Alice: We need to schedule the stakeholder demo. Bob can you set that up for next Tuesday?",
+  "Bob: Will do.",
+  "Alice: And someone needs to update the project roadmap on Confluence.",
+  "Carlos: I can take that, end of this week.",
+];
+let demoIdx = 0, transcriptInterval = null;
+
+function simulateTranscript() {
+  demoIdx = 0;
+  transcriptInterval = setInterval(()=>{
+    if (demoIdx < demoLines.length && isRecording && !isMuted) {
+      appendTranscript(demoLines[demoIdx]);
+      demoIdx++;
+    }
+    if (demoIdx >= demoLines.length) clearInterval(transcriptInterval);
+  }, 1800);
+}
+
+function appendTranscript(line, isSystem=false) {
+  if (!isSystem) transcriptLines.push(line);
+  const box = document.getElementById('transcriptBox');
+  if (box.querySelector('span[style]')) box.innerHTML='';
+  const el = document.createElement('div');
+  el.className = isSystem ? 'redacted' : 'normal';
+  el.textContent = line;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function extractTasks() {
+  const key = document.getElementById('apiKeyMic').value.trim();
+  const demo = !key;
+  document.getElementById('demoNoteMic').style.display = demo?'block':'none';
+  document.getElementById('extractBtn').disabled = true;
+  if (isRecording) stopRecording();
+  setStatus('micStatus','micStatusTxt',true,'Scrubbing transcript...');
+  await delay(800);
+  const transcript = transcriptLines.length > 0 ? transcriptLines.join('\n') : demoLines.join('\n');
+  try {
+    let parsed;
+    if (demo) {
+      setStatus('micStatus','micStatusTxt',true,'Running demo extraction...');
+      await delay(1500);
+      parsed = getDemoTaskData();
+    } else {
+      setStatus('micStatus','micStatusTxt',true,'Sending to Claude...');
+      const res = await fetch('/api/chat', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          key,
+          body: {
+            model:'gpt-4o', max_tokens:1500,
+            messages:[
+              {role:'system',content:`You are a professional meeting secretary. Analyse the transcript and extract action items. Ignore any sections marked [OFF THE RECORD] or [REDACTED]. Respond ONLY with valid JSON, no markdown:
+{"meeting_title":"...","summary":"1-2 sentence summary","tags":["..."],"tasks":[{"name":"task description","assignee":"name or Unknown","due":"e.g. Friday, Next Tuesday, or null","priority":"high|medium|low","platform":"todoist|github"}],"raw_notes":"any caveats"}`},
+              {role:'user',content:`Extract action items from this meeting transcript:\n\n${transcript}`}
+            ]
+          }
+        })
+      });
+      if (!res.ok) { const e=await res.json(); throw new Error(e.error?.message||'API error'); }
+      const data = await res.json();
+      parsed = JSON.parse(data.choices[0].message.content.replace(/```json|```/g,'').trim());
+    }
+    setStatus('micStatus','micStatusTxt',true,'Rendering tasks...');
+    await delay(200);
+    renderTaskResults(parsed, transcript);
+    setStatus('micStatus','micStatusTxt',false);
+  } catch(e) {
+    setStatus('micStatus','micStatusTxt',false);
+    document.getElementById('extractBtn').disabled = false;
+    alert('Error: '+e.message);
+  }
+}
+
+function renderTaskResults(d, transcript) {
+  document.getElementById('meetingTitle').textContent = d.meeting_title||'Meeting Summary';
+  document.getElementById('meetingSummary').textContent = d.summary||'';
+  const pills = document.getElementById('meetingPills'); pills.innerHTML='';
+  (d.tags||[]).forEach(t=>{ pills.innerHTML+=`<span class="pill pill-cyan">${t}</span>`; });
+  const tasks = d.tasks||[];
+  document.getElementById('taskCount').textContent = tasks.length+' task'+(tasks.length!==1?'s':'');
+  const list = document.getElementById('taskList'); list.innerHTML='';
+  tasks.forEach((t,i)=>{
+    const pc = t.priority==='high'?'prio-high':t.priority==='medium'?'prio-med':'prio-low';
+    list.innerHTML+=`<div class="task-item" style="animation-delay:${i*0.08}s">
+      <div class="task-top">
+        <div class="task-check" onclick="this.style.background='var(--green)';this.style.borderColor='var(--green)'"></div>
+        <div class="task-name">${t.name}</div>
+      </div>
+      <div class="task-meta">
+        <span class="task-prio ${pc}">${t.priority||'medium'}</span>
+        ${t.assignee?`<span class="task-assignee">👤 ${t.assignee}</span>`:''}
+        ${t.due?`<span class="task-due">📅 ${t.due}</span>`:''}
+        ${t.platform==='github'?'<span class="pill pill-purple">GitHub</span>':'<span class="pill pill-blue">Todoist</span>'}
+      </div>
+    </div>`;
+  });
+  document.getElementById('micRaw').textContent = transcript;
+  document.getElementById('micResults').classList.add('visible');
+  showFab();
+  document.getElementById('micResults').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function pushTasks(platform) {
+  alert(`In production, this would push ${platform==='github'?'GitHub Issues':'Todoist tasks'} via their API.\n\nOnly the final scrubbed task list would leave this device — no audio, no raw transcript.`);
+}
+
+// ══ DEMO DATA ══════════════════════════════════════════
+function getDemoRegData() {
+  return {
+    system_name:"Levansucrase Packed-Bed Reactor",
+    description:"Immobilised levansucrase from S. cerevisiae (QPS host) for in-situ conversion of sucrose to prebiotic levan in beverage lines.",
+    tags:["Food Enzyme","QPS Host","Processing Aid","GRAS"],
+    tag_colours:["blue","green","green","green"],
+    pathway_name:"Recombinant enzyme from QPS host — UK Food Enzyme Regulation",
+    pathway_colour:"green",
+    timeline:"12–18 months",
+    steps:[
+      {name:"Expression host selection",description:"Confirm S. cerevisiae or B. subtilis as QPS-listed host. Document strain lineage.",timeline:"1–2 mo",colour:"green"},
+      {name:"Production dossier",description:"Compile enzyme identity, manufacturing process, stability data, and levanase side-activity quantification.",timeline:"2–4 mo",colour:"cyan"},
+      {name:"Safety assessment",description:"Toxicological data review under EC 1332/2008 (retained UK law). Processing aid status may avoid novel food notification.",timeline:"3–6 mo",colour:"amber"},
+      {name:"FSA submission",description:"Submit to the Food Standards Agency under UK food enzyme authorisation framework.",timeline:"6–12 mo",colour:"amber"},
+      {name:"Authorisation",description:"Upon listing on UK authorised food enzymes register, commercial deployment permitted.",timeline:"Ongoing",colour:"green"}
+    ],
+    key_risks:["Levan novel food status if not inactivated","UK/EU post-Brexit divergence"],
+    raw_notes:"Key decision: if levan remains in final product from a non-traditional source, a separate novel food notification may be required under retained EU Regulation 2015/2283. Fully inactivating the enzyme as a processing aid is the faster pathway."
+  };
+}
+
+function getDemoTaskData() {
+  return {
+    meeting_title:"Q3 Release Sync",
+    summary:"Team aligned on Q3 release tasks. Key deliverables include API docs, auth service fix, security audit review, stakeholder demo setup, and roadmap update.",
+    tags:["Q3 Release","Engineering","Documentation"],
+    tasks:[
+      {name:"Update API documentation",assignee:"Bob",due:"Friday",priority:"high",platform:"todoist"},
+      {name:"Deploy fix for auth service performance regression",assignee:"Bob & Carlos",due:"Next week",priority:"high",platform:"github"},
+      {name:"Review security audit report",assignee:"Carlos",due:"Thursday",priority:"high",platform:"todoist"},
+      {name:"Schedule stakeholder demo",assignee:"Bob",due:"Tuesday",priority:"medium",platform:"todoist"},
+      {name:"Update project roadmap on Confluence",assignee:"Carlos",due:"End of week",priority:"low",platform:"todoist"}
+    ],
+    raw_notes:"No off-the-record sections detected in this transcript."
+  };
+}
+
+// ══ RESET ══════════════════════════════════════════════
+function resetAll() {
+  retake();
+  if (isRecording) stopRecording();
+  transcriptLines=[];
+  document.getElementById('transcriptBox').innerHTML='<span style="color:var(--dimmed)">Transcript will appear here...</span>';
+  document.getElementById('micResults').classList.remove('visible');
+  document.getElementById('extractBtn').disabled = true;
+  document.getElementById('recTimerLabel').style.display='none';
+  hideFab();
+}
+
+
+
+</script>
+</body>
+</html>
